@@ -104,6 +104,13 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip
 
+/** Props passed by Recharts to custom Tooltip content (injected at runtime, not in TooltipProps) */
+type RechartsTooltipContentProps = {
+  active?: boolean
+  payload?: ReadonlyArray<Record<string, unknown> & { value?: unknown; name?: unknown; dataKey?: unknown; payload?: unknown; color?: string; fill?: string }>
+  label?: React.ReactNode
+}
+
 function ChartTooltipContent({
   active,
   payload,
@@ -119,7 +126,8 @@ function ChartTooltipContent({
   nameKey,
   labelKey,
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-  React.ComponentProps<"div"> & {
+  React.ComponentProps<"div"> &
+  RechartsTooltipContentProps & {
     hideLabel?: boolean
     hideIndicator?: boolean
     indicator?: "line" | "dot" | "dashed"
@@ -144,7 +152,7 @@ function ChartTooltipContent({
     if (labelFormatter) {
       return (
         <div className={cn("font-medium", labelClassName)}>
-          {labelFormatter(value, payload)}
+          {labelFormatter(value, payload as unknown as Parameters<NonNullable<typeof labelFormatter>>[1])}
         </div>
       )
     }
@@ -184,18 +192,24 @@ function ChartTooltipContent({
           .map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = color || (item.payload as { fill?: string } | undefined)?.fill || item.color
 
             return (
               <div
-                key={item.dataKey}
+                key={String(item.dataKey ?? index)}
                 className={cn(
                   "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
                   indicator === "dot" && "items-center"
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
-                  formatter(item.value, item.name, item, index, item.payload)
+                  formatter(
+                    item.value as Parameters<NonNullable<typeof formatter>>[0],
+                    item.name as Parameters<NonNullable<typeof formatter>>[1],
+                    item as unknown as Parameters<NonNullable<typeof formatter>>[2],
+                    index,
+                    (item.payload ?? payload) as unknown as Parameters<NonNullable<typeof formatter>>[4]
+                  )
                 ) : (
                   <>
                     {itemConfig?.icon ? (
@@ -231,12 +245,14 @@ function ChartTooltipContent({
                       <div className="grid gap-1.5">
                         {nestLabel ? tooltipLabel : null}
                         <span className="text-muted-foreground">
-                          {itemConfig?.label || item.name}
+                          {itemConfig?.label ?? (item.name != null ? String(item.name) : null)}
                         </span>
                       </div>
-                      {item.value && (
+                      {item.value != null && (
                         <span className="text-foreground font-mono font-medium tabular-nums">
-                          {item.value.toLocaleString()}
+                          {typeof item.value === "number"
+                            ? item.value.toLocaleString()
+                            : String(item.value)}
                         </span>
                       )}
                     </div>
@@ -252,6 +268,12 @@ function ChartTooltipContent({
 
 const ChartLegend = RechartsPrimitive.Legend
 
+/** Props passed by Recharts to custom Legend content (injected at runtime) */
+type RechartsLegendContentProps = {
+  payload?: ReadonlyArray<Record<string, unknown> & { value?: string; dataKey?: unknown; color?: string }>
+  verticalAlign?: "top" | "bottom"
+}
+
 function ChartLegendContent({
   className,
   hideIcon = false,
@@ -259,7 +281,7 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  RechartsLegendContentProps & {
     hideIcon?: boolean
     nameKey?: string
   }) {

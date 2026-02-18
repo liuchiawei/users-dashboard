@@ -18,7 +18,7 @@ export function DayOfWeekChart() {
             <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
               <XAxis dataKey="label" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(value: number) => [value?.toFixed(1) ?? "", ""]} />
+              <Tooltip formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : "", ""]} />
               <Legend />
               <Bar name="平均申込数" dataKey="apps" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
               <Bar name="平均契約数" dataKey="contracts" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />

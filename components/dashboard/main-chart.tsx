@@ -26,7 +26,7 @@ export function MainChart() {
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(value: number) => [value?.toLocaleString() ?? "", ""]}
+                formatter={(value: number | undefined) => [value != null ? value.toLocaleString() : "", ""]}
                 labelFormatter={(label) => `年月: ${label}`}
               />
               <Legend />

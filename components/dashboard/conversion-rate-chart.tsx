@@ -18,7 +18,7 @@ export function ConversionRateChart() {
             <LineChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
               <XAxis dataKey="label" tick={{ fontSize: 10 }} />
               <YAxis domain={[0, 50]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
-              <Tooltip formatter={(value: number) => [`${value != null ? value.toFixed(1) : ""}%`, "契約率"]} />
+              <Tooltip formatter={(value: number | undefined) => [`${value != null ? value.toFixed(1) : ""}%`, "契約率"]} />
               <Line
                 type="monotone"
                 dataKey="convRate"

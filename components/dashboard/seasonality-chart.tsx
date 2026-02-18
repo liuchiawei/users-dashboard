@@ -35,7 +35,7 @@ export function SeasonalityChart() {
                 fillOpacity={0.2}
                 strokeWidth={2}
               />
-              <Tooltip formatter={(value: number) => [value?.toFixed(2) ?? "", "季節性指数"]} />
+              <Tooltip formatter={(value: number | undefined) => [value != null ? value.toFixed(2) : "", "季節性指数"]} />
             </RadarChart>
           </ResponsiveContainer>
         </div>

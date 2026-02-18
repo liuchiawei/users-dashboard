@@ -18,7 +18,7 @@ export function QuarterChart() {
             <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
               <XAxis dataKey="label" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(value: number) => [value != null ? value.toLocaleString() : "", ""]} />
+              <Tooltip formatter={(value: number | undefined) => [value != null ? value.toLocaleString() : "", ""]} />
               <Legend />
               <Bar name="2025 申込" dataKey="apps2025" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
               <Bar name="2026 申込" dataKey="apps2026" fill="var(--chart-2)" radius={[4, 4, 0, 0]} />
