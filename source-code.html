@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カラーミーショップ 申込数・契約数 予測分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; background: #f0f2f5; color: #1a1a2e; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+  .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 28px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .kpi-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .kpi-label { font-size: 0.78rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 1.8rem; font-weight: 700; }
+  .kpi-sub { font-size: 0.8rem; margin-top: 4px; }
+  .negative { color: #e74c3c; }
+  .positive { color: #27ae60; }
+  .neutral { color: #3498db; }
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .chart-full { margin-bottom: 24px; }
+  .chart-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .chart-card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; color: #333; }
+  canvas { width: 100% !important; }
+  .analysis { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  .analysis h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+  .analysis h3 { font-size: 0.95rem; font-weight: 600; margin: 16px 0 8px; color: #555; }
+  .analysis p { font-size: 0.9rem; color: #444; margin-bottom: 10px; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .tag-red { background: #ffeaea; color: #c0392b; }
+  .tag-green { background: #eafff0; color: #27ae60; }
+  .tag-blue { background: #eaf0ff; color: #2980b9; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { background: #f8f9fa; padding: 10px 12px; text-align: right; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
+  th:first-child { text-align: left; }
+  td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; }
+  td:first-child { text-align: left; font-weight: 500; }
+  tr.forecast-row { background: #f8fbff; }
+  tr.forecast-row td { color: #2980b9; font-style: italic; }
+  .divider { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
+  .footer { text-align: center; font-size: 0.78rem; color: #aaa; padding: 16px 0; }
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>カラーミーショップ 申込数・契約数 予測分析</h1>
+  <p class="subtitle">2025年1月〜2026年12月（2026年3月以降は予測値） | 作成日: 2026年2月18日</p>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">2025年 申込数合計</div>
+      <div class="kpi-value">3,806</div>
+      <div class="kpi-sub neutral">月平均 317件</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">2025年 契約数合計</div>
+      <div class="kpi-value">1,127</div>
+      <div class="kpi-sub neutral">月平均 94件</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">2026年 申込数予測</div>
+      <div class="kpi-value negative">2,114</div>
+      <div class="kpi-sub negative">前年比 -44.5%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">2026年 契約数予測</div>
+      <div class="kpi-value negative">778</div>
+      <div class="kpi-sub negative">前年比 -31.0%</div>
+    </div>
+  </div>
+
+  <!-- Main chart -->
+  <div class="chart-card chart-full">
+    <h2>月別 申込数・契約数の推移と予測</h2>
+    <canvas id="mainChart" height="90"></canvas>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h2>月別契約率の推移</h2>
+      <canvas id="convChart" height="70"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>四半期比較（2025 vs 2026予測）</h2>
+      <canvas id="quarterChart" height="70"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h2>曜日別 平均申込数</h2>
+      <canvas id="dowChart" height="70"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>月別季節性指数（2025年実績）</h2>
+      <canvas id="seasonChart" height="70"></canvas>
+    </div>
+  </div>
+
+  <!-- Data table -->
+  <div class="chart-card chart-full">
+    <h2>月別データ一覧</h2>
+    <table>
+      <thead>
+        <tr><th>年月</th><th>申込数</th><th>契約数</th><th>契約率</th><th>区分</th></tr>
+      </thead>
+      <tbody id="dataTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Analysis -->
+  <div class="analysis">
+    <h2>分析レポート</h2>
+
+    <h3><span class="tag tag-red">申込数トレンド</span> 明確な減少傾向</h3>
+    <p>2025年を通じて、申込数は月あたり約11件のペースで減少しています。2025年Q1（1〜3月）の申込数合計1,099件に対し、Q4（10〜12月）は804件と約27%減少しました。2026年1月は256件で、前年同月の397件から35.5%の大幅減となっています。</p>
+    <p>この減少傾向が続く場合、2026年後半には月間100〜150件程度まで落ち込む見通しです。</p>
+
+    <h3><span class="tag tag-green">契約率トレンド</span> 改善傾向</h3>
+    <p>一方で、契約率（申込者のうち実際に本契約に至った割合）は改善しています。2025年1月は11.8%（新規サービス開始直後のため低い）でしたが、2月以降は25〜38%の水準で推移し、後半にかけて上昇傾向にあります。月あたり約0.6ポイントずつ改善しており、2026年後半には35〜40%程度に達すると予測します。</p>
+    <p>これは、申込後30日の試用期間を経て本契約する運用が定着し、本気度の高いユーザーの割合が上昇していることを示唆します。</p>
+
+    <h3><span class="tag tag-blue">季節性パターン</span></h3>
+    <p>申込数には明確な季節性があります。4月が最も多く（年度始まりの新規事業立ち上げ需要）、1〜3月も比較的高水準です。一方、7〜8月と11月は落ち込む傾向にあります。また、曜日別では平日（特に水・木曜）が多く、土日は平日の約半分となっています。</p>
+
+    <h3><span class="tag tag-red">2026年見通しまとめ</span></h3>
+    <p>申込数の減少トレンドが最大のリスク要因です。2026年通年の申込数は約2,114件（前年比-44.5%）、契約数は約778件（前年比-31.0%）と予測します。契約率の改善が契約数の落ち込みを一定程度緩和しますが、申込数の減少を完全にはカバーできません。</p>
+    <p>申込数回復のためには、集客施策の強化（広告・SEO・紹介キャンペーン等）が重要と考えられます。</p>
+
+    <h3>予測モデルについて</h3>
+    <p>本予測は、2025年1月〜2026年1月の13ヶ月分の実績データに基づき、「線形トレンド＋季節性指数」の手法で算出しています。申込数は線形回帰による下降トレンドに2025年の月別季節性指数を乗じて算出。契約率は緩やかな上昇トレンドを反映し、上限40%でキャップしています。外部要因（市場環境の変化、競合動向、マーケティング施策の変更等）は考慮していないため、実際の数値とは乖離する可能性があります。</p>
+  </div>
+
+  <div class="footer">Generated by Claude | Data source: カラーミーショップ 申込数と契約数.xlsx</div>
+</div>
+
+<script>
+const labels = ['25/01','25/02','25/03','25/04','25/05','25/06','25/07','25/08','25/09','25/10','25/11','25/12',
+                '26/01','26/02','26/03','26/04','26/05','26/06','26/07','26/08','26/09','26/10','26/11','26/12'];
+const apps =      [397,360,342,398,323,308,277,284,313,304,233,267, 256,188,239,263,202,182,154,147,151,136,96,100];
+const contracts = [47,92,110,108,103,100,103,75,101,117,78,93,  86,47,88,98,77,70,61,59,60,54,38,40];
+const convRate =  [11.8,25.6,32.2,27.1,31.9,32.5,37.2,26.4,32.3,38.5,33.5,34.8, 33.6,25.0,36.8,37.4,38.0,38.7,39.3,39.9,40.0,40.0,40.0,40.0];
+const types = ['actual','actual','actual','actual','actual','actual','actual','actual','actual','actual','actual','actual',
+               'actual','projected','forecast','forecast','forecast','forecast','forecast','forecast','forecast','forecast','forecast','forecast'];
+
+const actualColor = '#2c3e50';
+const forecastColor = '#3498db';
+const contractActual = '#e67e22';
+const contractForecast = '#f39c12';
+
+// Create gradient backgrounds
+function getGradient(ctx, c1, c2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+}
+
+// Main chart
+const mainCtx = document.getElementById('mainChart').getContext('2d');
+new Chart(mainCtx, {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [
+      {
+        label: '申込数（実績）',
+        data: apps.map((v,i) => types[i]==='actual' ? v : null),
+        backgroundColor: 'rgba(44,62,80,0.8)', borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+      },
+      {
+        label: '申込数（予測）',
+        data: apps.map((v,i) => types[i]!=='actual' ? v : null),
+        backgroundColor: 'rgba(52,152,219,0.5)', borderColor: 'rgba(52,152,219,0.8)', borderWidth: 1, borderDash: [3,3], borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+      },
+      {
+        label: '契約数（実績）',
+        data: contracts.map((v,i) => types[i]==='actual' ? v : null),
+        backgroundColor: 'rgba(230,126,34,0.85)', borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+      },
+      {
+        label: '契約数（予測）',
+        data: contracts.map((v,i) => types[i]!=='actual' ? v : null),
+        backgroundColor: 'rgba(243,156,18,0.5)', borderColor: 'rgba(243,156,18,0.8)', borderWidth: 1, borderDash: [3,3], borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { usePointStyle: true, padding: 16, font: { size: 12 } } },
+      annotation: {}
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// Conversion rate chart
+const convCtx = document.getElementById('convChart').getContext('2d');
+new Chart(convCtx, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: '契約率 (%)',
+      data: convRate,
+      borderColor: '#27ae60',
+      backgroundColor: 'rgba(39,174,96,0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: convRate.map((v,i) => types[i]==='actual' ? '#27ae60' : '#82e0aa'),
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      segment: {
+        borderDash: ctx => types[ctx.p1DataIndex] !== 'actual' ? [5,5] : [],
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+      y: { beginAtZero: true, max: 50, ticks: { callback: v => v+'%', font: { size: 10 } }, grid: { color: '#f0f0f0' } }
+    }
+  }
+});
+
+// Quarter chart
+const qCtx = document.getElementById('quarterChart').getContext('2d');
+new Chart(qCtx, {
+  type: 'bar',
+  data: {
+    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+    datasets: [
+      { label: '2025 申込', data: [1099, 1029, 874, 804], backgroundColor: 'rgba(44,62,80,0.8)', borderRadius: 4 },
+      { label: '2026 申込', data: [683, 647, 452, 332], backgroundColor: 'rgba(52,152,219,0.6)', borderRadius: 4 },
+      { label: '2025 契約', data: [249, 311, 279, 288], backgroundColor: 'rgba(230,126,34,0.8)', borderRadius: 4 },
+      { label: '2026 契約', data: [221, 245, 180, 132], backgroundColor: 'rgba(243,156,18,0.6)', borderRadius: 4 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// Day of week chart
+const dowCtx = document.getElementById('dowChart').getContext('2d');
+new Chart(dowCtx, {
+  type: 'bar',
+  data: {
+    labels: ['月', '火', '水', '木', '金', '土', '日'],
+    datasets: [
+      { label: '平均申込数', data: [11.3, 11.3, 12.3, 12.7, 10.9, 6.5, 6.0], backgroundColor: ['#3498db','#3498db','#3498db','#3498db','#3498db','#95a5a6','#95a5a6'], borderRadius: 6 },
+      { label: '平均契約数', data: [4.2, 3.9, 4.0, 3.1, 3.5, 1.3, 1.1], backgroundColor: ['#e67e22','#e67e22','#e67e22','#e67e22','#e67e22','#bdc3c7','#bdc3c7'], borderRadius: 6 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top', labels: { usePointStyle: true, padding: 10, font: { size: 10 } } } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// Seasonality chart
+const seasonCtx = document.getElementById('seasonChart').getContext('2d');
+new Chart(seasonCtx, {
+  type: 'radar',
+  data: {
+    labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    datasets: [{
+      label: '季節性指数',
+      data: [1.25, 1.14, 1.08, 1.26, 1.02, 0.97, 0.87, 0.90, 0.99, 0.96, 0.74, 0.84],
+      borderColor: '#8e44ad',
+      backgroundColor: 'rgba(142,68,173,0.15)',
+      pointBackgroundColor: '#8e44ad',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      r: {
+        beginAtZero: false, min: 0.5, max: 1.5,
+        ticks: { stepSize: 0.25, font: { size: 9 }, backdropColor: 'transparent' },
+        grid: { color: '#e0e0e0' },
+        pointLabels: { font: { size: 11 } }
+      }
+    }
+  }
+});
+
+// Populate table
+const tbody = document.getElementById('dataTable');
+const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+for (let i = 0; i < labels.length; i++) {
+  const yr = i < 12 ? '2025年' : '2026年';
+  const mo = monthNames[i % 12];
+  const typeLabel = types[i] === 'actual' ? '実績' : types[i] === 'projected' ? '実績(推定)' : '予測';
+  const cls = types[i] !== 'actual' ? 'class="forecast-row"' : '';
+  tbody.innerHTML += `<tr ${cls}><td>${yr}${mo}</td><td>${apps[i].toLocaleString()}</td><td>${contracts[i].toLocaleString()}</td><td>${convRate[i].toFixed(1)}%</td><td>${typeLabel}</td></tr>`;
+}
+</script>
+</body>
+</html>
